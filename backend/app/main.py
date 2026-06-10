@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import create_db_and_tables, get_session
 from app.routers import auth, departments, users, reports, files, email_router, admin
-from app.models import ReportShare  # noqa: F401 — ensure table is registered on startup
+from app.models import ReportShare, ReportEditLog  # noqa: F401 — ensure tables are registered on startup
 
 logging.basicConfig(
     level=logging.INFO,

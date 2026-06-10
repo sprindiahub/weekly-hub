@@ -129,8 +129,8 @@ export default function HistoryPage() {
 
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input">
             <option value="">All Statuses</option>
-            <option value="draft">In Progress (Draft)</option>
-            <option value="published">Submitted (Published)</option>
+            <option value="draft">Local (Draft)</option>
+            <option value="published">Shared</option>
           </select>
 
           <div className="flex gap-2">
@@ -211,7 +211,7 @@ export default function HistoryPage() {
                       </td>
                       <td>
                         <span className={`badge ${isPublished ? 'badge-green' : 'badge-amber'}`}>
-                          {isPublished ? '● Submitted' : '○ In Progress'}
+                          {isPublished ? '● Shared' : '○ Local'}
                         </span>
                       </td>
                       <td>
@@ -259,7 +259,7 @@ export default function HistoryPage() {
                       {formatDate(r.weekend_date)}
                     </span>
                     <span className={`badge ${r.status === 'published' ? 'badge-green' : 'badge-amber'}`}>
-                      {r.status === 'published' ? 'Submitted' : 'In Progress'}
+                      {r.status === 'published' ? 'Shared' : 'Local'}
                     </span>
                   </div>
                   <div className="text-xs font-medium mt-0.5" style={{ color: '#a89f98' }}>

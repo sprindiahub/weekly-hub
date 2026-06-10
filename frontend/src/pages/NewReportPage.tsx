@@ -152,13 +152,13 @@ export default function NewReportPage() {
                 {[
                   {
                     key: 'draft' as const,
-                    title: 'Save as Draft',
+                    title: 'Save Locally',
                     desc: 'Visible only to you — continue editing before submitting',
                     emoji: '✎',
                   },
                   {
                     key: 'published' as const,
-                    title: 'Submit Immediately',
+                    title: 'Share Now',
                     desc: 'Visible to all departments — ready for consolidation & distribution',
                     emoji: '✓',
                   },
@@ -253,7 +253,7 @@ export default function NewReportPage() {
                       <div className="text-xs font-medium mt-0.5" style={{ color: '#a89f98' }}>
                         {r.notes.length} item{r.notes.length !== 1 ? 's' : ''} ·{' '}
                         <span style={{ color: r.status === 'published' ? '#15803d' : '#92400e' }}>
-                          {r.status === 'published' ? 'Submitted' : 'In Progress'}
+                          {r.status === 'published' ? 'Shared' : 'Local'}
                         </span>
                       </div>
                     </div>
@@ -271,7 +271,7 @@ export default function NewReportPage() {
             <ul className="space-y-3">
               {[
                 { step: '1', text: 'Choose the upcoming Saturday as the week-end date' },
-                { step: '2', text: 'Save as Draft to keep editing, or Submit to publish immediately' },
+                { step: '2', text: 'Save Locally to keep editing, or Submit to publish immediately' },
                 { step: '3', text: 'Add numbered activity points and attach supporting images' },
                 { step: '4', text: 'Export as PDF or send directly via email once complete' },
               ].map(({ step, text }) => (

@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, FilePlus2, Archive, Users2,
-  Building2, ScrollText, X, ShieldCheck, BarChart2
+  Building2, ScrollText, X, ShieldCheck, BarChart2, Share2
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/',            icon: LayoutDashboard, label: 'Overview',       exact: true },
   { to: '/reports/new', icon: FilePlus2,       label: 'New Report' },
   { to: '/history',     icon: Archive,         label: 'Report Archive' },
+  { to: '/shared',      icon: Share2,          label: 'Shared With Me' },
 ]
 const adminItems = [
   { to: '/admin/users',       icon: Users2,     label: 'User Management' },

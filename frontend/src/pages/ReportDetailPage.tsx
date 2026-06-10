@@ -290,6 +290,18 @@ export default function ReportDetailPage() {
     queryFn: () => api.get(`/reports/${id}`).then(r => r.data),
   })
 
+  interface EditLogEntry {
+    id: number; report_id: number; user_id: number; action: string
+    detail?: string; edited_at: string
+    user?: { id: number; username: string; department?: { name: string } }
+  }
+  const { data: editHistory = [] } = useQuery<EditLogEntry[]>({
+    queryKey: ['edit-history', id],
+    queryFn: () => api.get(`/reports/${id}/edit-history`).then(r => r.data),
+    enabled: !!id,
+    refetchInterval: 30000,
+  })
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ['report', id] })
 
   const addNoteMutation = useMutation({
@@ -366,7 +378,9 @@ export default function ReportDetailPage() {
             <h1 className="text-xl font-bold text-gray-900">
               {formatDate(report.weekend_date, 'EEEE, dd MMMM yyyy')}
             </h1>
-            <span className={`badge ${getStatusColor(report.status)}`}>{report.status}</span>
+            <span className={`badge ${getStatusColor(report.status)}`}>
+              {report.status === 'published' ? 'Shared' : 'Local'}
+            </span>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-400 mt-1 flex-wrap">
             <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{report.department?.name}</span>
@@ -380,17 +394,17 @@ export default function ReportDetailPage() {
             <button
               onClick={() => setShowPublish(true)}
               className="btn-secondary btn-sm"
-              title="Publish and choose who can access this report"
+              title="Share this report and choose who can access it"
             >
-              <CheckCircle className="w-3.5 h-3.5 text-green-500" /> Publish
+              <CheckCircle className="w-3.5 h-3.5 text-green-500" /> Share
             </button>
           ) : (
             <button
               onClick={() => statusMutation.mutate('draft')}
               className="btn-secondary btn-sm"
-              title="Revert to draft"
+              title="Set back to Local (private)"
             >
-              <Clock className="w-3.5 h-3.5" /> Revert to Draft
+              <Clock className="w-3.5 h-3.5" /> Set to Local
             </button>
           )}
           <button onClick={handlePDF} className="btn-secondary btn-sm">
@@ -413,7 +427,7 @@ export default function ReportDetailPage() {
       {report.status === 'draft' && (
         <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-xs text-yellow-700 flex items-center gap-2">
           <Clock className="w-4 h-4 flex-shrink-0" />
-          <span>This report is a <strong>draft</strong>. Publish it so other departments can include it in combined reports.</span>
+          <span>This report is saved <strong>locally</strong>. Share it to make it visible to selected users.</span>
         </div>
       )}
 
@@ -471,9 +485,56 @@ export default function ReportDetailPage() {
           </div>
         </div>
 
-        {/* Images — 1/3 */}
-        <div>
+        {/* Right column: Images + Edit History */}
+        <div className="space-y-5">
           <ImageUploadPanel report={report} onUploaded={invalidate} />
+
+          {/* Edit History — only shown if there are edits */}
+          {editHistory.length > 0 && (
+            <div className="card p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="w-5 h-5" style={{ color: '#c9a84c' }} />
+                <h2 className="font-semibold text-gray-900">Edit Activity</h2>
+                <span className="badge badge-amber">{editHistory.length}</span>
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {editHistory.slice().reverse().map(entry => (
+                  <div
+                    key={entry.id}
+                    className="flex gap-3 p-3 rounded-lg"
+                    style={{ background: '#faf9f8', border: '1px solid #f0ece8' }}
+                  >
+                    {/* Avatar */}
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0"
+                      style={{ background: 'rgba(77,14,56,0.1)', color: '#4d0e38' }}
+                    >
+                      {(entry.user?.username ?? '?').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold" style={{ color: '#1a1512' }}>
+                          {entry.user?.username ?? 'Unknown'}
+                        </span>
+                        {entry.user?.department && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                                style={{ background: 'rgba(77,14,56,0.07)', color: '#4d0e38' }}>
+                            {entry.user.department.name}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-medium mt-0.5" style={{ color: '#5c544e' }}>
+                        {entry.detail ?? entry.action.replace(/_/g, ' ')}
+                      </p>
+                      <p className="text-[10px] font-medium mt-0.5" style={{ color: '#a89f98' }}>
+                        {formatDateTime(entry.edited_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

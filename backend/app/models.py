@@ -199,6 +199,30 @@ class ReportImageRead(SQLModel):
     url: str = ""
 
 
+# ── ReportEditLog ─────────────────────────────────────────────────────────────
+# Every time a shared user (or the owner) mutates a report, a row is written here.
+# The original creator can see "X edited your report at Y".
+
+class ReportEditLog(SQLModel, table=True):
+    __tablename__ = "report_edit_logs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    report_id: int = Field(foreign_key="weekly_reports.id", index=True)
+    user_id: int = Field(foreign_key="users.id")
+    action: str          # "note_added" | "note_edited" | "note_deleted" | "image_added" | "image_deleted"
+    detail: Optional[str] = None   # short human-readable summary
+    edited_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ReportEditLogRead(SQLModel):
+    id: int
+    report_id: int
+    user_id: int
+    action: str
+    detail: Optional[str]
+    edited_at: datetime
+    user: Optional["UserRead"] = None
+
+
 # ── ReportShare ───────────────────────────────────────────────────────────────
 # Tracks which specific users have been granted access to a published report.
 # If NO shares exist for a report → all users with normal access can see it.

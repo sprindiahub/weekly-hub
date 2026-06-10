@@ -42,9 +42,12 @@ export function formatFileSize(bytes: number): string {
 }
 
 export function getStatusColor(status: string) {
-  return status === 'published'
-    ? 'badge-green'
-    : 'badge-orange'
+  return status === 'published' ? 'badge-green' : 'badge-amber'
+}
+
+/** UI label for report status: "published" → "Shared", "draft" → "Local" */
+export function statusLabel(status: string): string {
+  return status === 'published' ? 'Shared' : 'Local'
 }
 
 export function getActionColor(action: string) {

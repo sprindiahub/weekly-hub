@@ -61,7 +61,7 @@ function ReportCard({ report }: { report: WeeklyReport }) {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`badge ${isPublished ? 'badge-green' : 'badge-amber'}`}>
-              {isPublished ? '● Submitted' : '○ In Progress'}
+              {isPublished ? '● Shared' : '○ Local'}
             </span>
             <span className="text-xs font-medium" style={{ color: '#a89f98' }}>
               {report.department?.name}
@@ -206,7 +206,7 @@ export default function DashboardPage() {
         <StatCard value={reports.length} label="Total Reports"    icon={FileText}   color="rgba(77,14,56,0.08)"  borderColor="#4d0e38" />
         <StatCard value={totalNotes}     label="Activity Items"   icon={FileText}   color="rgba(34,197,94,0.1)"  borderColor="#15803d" />
         <StatCard value={totalImages}    label="Documents Filed"  icon={ImageIcon}  color="rgba(124,58,237,0.1)" borderColor="#7c3aed" />
-        <StatCard value={published}      label="Submitted Reports"icon={TrendingUp} color="rgba(201,168,76,0.1)" borderColor="#c9a84c" />
+        <StatCard value={published}      label="Shared Reports"icon={TrendingUp} color="rgba(201,168,76,0.1)" borderColor="#c9a84c" />
       </div>
 
       {/* ── Recent Reports ──────────────────────────────────────────── */}

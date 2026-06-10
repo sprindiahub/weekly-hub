@@ -10,7 +10,7 @@ from app.database import get_session
 from app.models import (
     User, WeeklyReport, WeeklyReportCreate, WeeklyReportUpdate, WeeklyReportRead,
     ReportNote, ReportNoteCreate, ReportNoteUpdate, ReportNoteRead,
-    Department, UserRole, ReportStatus, ReportShare
+    Department, UserRole, ReportStatus, ReportShare, ReportEditLog
 )
 from app.services.pdf_service import generate_pdf
 from app.utils.audit import log_action
@@ -108,6 +108,13 @@ def _check_report_access(report: WeeklyReport, current_user: User, session: Sess
             raise HTTPException(403, "Access denied")
 
 
+def _log_edit(session: Session, report_id: int, user_id: int, action: str, detail: str = None):
+    """Write a ReportEditLog row so collaborators can see who changed what."""
+    session.add(ReportEditLog(
+        report_id=report_id, user_id=user_id, action=action, detail=detail
+    ))
+
+
 # ── CRUD ───────────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=List[WeeklyReportRead])
@@ -151,6 +158,63 @@ def list_reports(
         reports = filtered
 
     return [_enrich_report(r, session) for r in reports]
+
+
+@router.get("/shared-with-me", response_model=List[WeeklyReportRead])
+def get_shared_with_me(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns all reports explicitly shared with the current user (they are not the owner)."""
+    shares = session.exec(
+        select(ReportShare).where(ReportShare.user_id == current_user.id)
+    ).all()
+    report_ids = [s.report_id for s in shares]
+    if not report_ids:
+        return []
+    reports = session.exec(
+        select(WeeklyReport).where(WeeklyReport.id.in_(report_ids))
+        .order_by(WeeklyReport.updated_at.desc())
+    ).all()
+    # exclude reports the user owns (they see those in their own list)
+    reports = [r for r in reports if r.user_id != current_user.id]
+    return [_enrich_report(r, session) for r in reports]
+
+
+@router.get("/{report_id}/edit-history")
+def get_edit_history(
+    report_id: int,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns the full edit log for a report — visible to owner and all shared users."""
+    report = session.get(WeeklyReport, report_id)
+    if not report:
+        raise HTTPException(404, "Report not found")
+    _check_report_access(report, current_user, session)
+
+    logs = session.exec(
+        select(ReportEditLog).where(ReportEditLog.report_id == report_id)
+        .order_by(ReportEditLog.edited_at.desc())
+    ).all()
+
+    result = []
+    for log in logs:
+        u = session.get(User, log.user_id)
+        dept = session.get(Department, u.department_id) if u and u.department_id else None
+        result.append({
+            "id": log.id,
+            "action": log.action,
+            "detail": log.detail,
+            "edited_at": log.edited_at,
+            "user": {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "department": dept.name if dept else None,
+            } if u else None,
+        })
+    return result
 
 
 @router.get("/week/{weekend_date}/published", response_model=List[WeeklyReportRead])
@@ -311,6 +375,8 @@ def add_note(
     session.add(note)
     report.updated_at = datetime.utcnow()
     session.add(report)
+    _log_edit(session, report_id, current_user.id, "note_added",
+              f"{current_user.username} added a point: \"{note_in.content[:80]}\"")
     session.commit()
     session.refresh(note)
     return note
@@ -340,6 +406,8 @@ def update_note(
     report.updated_at = datetime.utcnow()
     session.add(note)
     session.add(report)
+    _log_edit(session, report_id, current_user.id, "note_edited",
+              f"{current_user.username} edited a point: \"{note_in.content[:80] if note_in.content else '…'}\"")
     session.commit()
     session.refresh(note)
     return note
@@ -360,6 +428,8 @@ def delete_note(
     note = session.get(ReportNote, note_id)
     if not note or note.report_id != report_id:
         raise HTTPException(404, "Note not found")
+    _log_edit(session, report_id, current_user.id, "note_deleted",
+              f"{current_user.username} removed a point")
     session.delete(note)
     report.updated_at = datetime.utcnow()
     session.add(report)

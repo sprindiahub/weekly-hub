@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.auth import get_current_user
 from app.database import get_session
-from app.models import User, WeeklyReport, ReportImage, ReportImageRead, Department, UserRole
+from app.models import User, WeeklyReport, ReportImage, ReportImageRead, Department, UserRole, ReportShare, ReportEditLog
 from app.utils.helpers import get_upload_path, generate_filename, validate_image_file
 from app.utils.audit import log_action
 from app.config import settings
@@ -25,11 +25,24 @@ def _img_url(file_path: str) -> str:
 router = APIRouter(prefix="/api", tags=["files"])
 
 
-def _check_report_access(report: WeeklyReport, current_user: User):
+def _check_report_access(report: WeeklyReport, current_user: User, session: Session = None):
     if current_user.role == UserRole.admin:
         return
-    if report.user_id != current_user.id:
+    if report.user_id == current_user.id:
+        return
+    if session:
+        shares = session.exec(select(ReportShare).where(ReportShare.report_id == report.id)).all()
+        shared_ids = [s.user_id for s in shares]
+        if shared_ids and current_user.id not in shared_ids:
+            raise HTTPException(403, "You do not have access to this report")
+        if not shared_ids and report.department_id != current_user.department_id:
+            raise HTTPException(403, "Access denied")
+    else:
         raise HTTPException(403, "Access denied")
+
+
+def _log_edit(session: Session, report_id: int, user_id: int, action: str, detail: str = None):
+    session.add(ReportEditLog(report_id=report_id, user_id=user_id, action=action, detail=detail))
 
 
 @router.post("/reports/{report_id}/images", response_model=List[ReportImageRead])
@@ -44,7 +57,7 @@ async def upload_images(
     report = session.get(WeeklyReport, report_id)
     if not report:
         raise HTTPException(404, "Report not found")
-    _check_report_access(report, current_user)
+    _check_report_access(report, current_user, session)
 
     dept = session.get(Department, report.department_id)
     if not dept:
@@ -106,6 +119,8 @@ async def upload_images(
 
     report.updated_at = datetime.utcnow()
     session.add(report)
+    _log_edit(session, report_id, current_user.id, "image_added",
+              f"{current_user.username} attached {len(files)} image(s)")
     session.commit()
     log_action(session, current_user.id, "UPLOAD_IMAGES", "report", report_id, f"{len(files)} file(s)")
     return created
@@ -159,12 +174,14 @@ def delete_image(
     report = session.get(WeeklyReport, report_id)
     if not report:
         raise HTTPException(404, "Report not found")
-    _check_report_access(report, current_user)
+    _check_report_access(report, current_user, session)
 
     img = session.get(ReportImage, image_id)
     if not img or img.report_id != report_id:
         raise HTTPException(404, "Image not found")
 
+    _log_edit(session, report_id, current_user.id, "image_deleted",
+              f"{current_user.username} removed image \"{img.original_name}\"")
     try:
         os.remove(img.file_path)
     except Exception:

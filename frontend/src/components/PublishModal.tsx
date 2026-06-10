@@ -67,7 +67,7 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
       onPublished()
       onClose()
     },
-    onError: (e: any) => toast.error(e.response?.data?.detail || 'Failed to publish'),
+    onError: (e: any) => toast.error(e.response?.data?.detail || 'Failed to share report'),
   })
 
   const canPublish = mode === 'open' || selectedIds.length > 0
@@ -102,7 +102,7 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
             <Send className="w-5 h-5" style={{ color: '#4d0e38' }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-display text-xl" style={{ color: '#1a1512' }}>Publish Report</h2>
+            <h2 className="font-display text-xl" style={{ color: '#1a1512' }}>Share Report</h2>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#a89f98' }}>
               Choose who can access this report
             </p>
@@ -314,8 +314,8 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
               {mode === 'restricted' && selectedIds.length === 0
                 ? 'Select at least one user to restrict access, or switch to Open Access.'
                 : mode === 'restricted'
-                ? `Only ${selectedIds.length} selected user${selectedIds.length !== 1 ? 's' : ''} will be able to view this report after publishing.`
-                : 'All users in the system will be able to view this report after publishing.'}
+                ? `Only ${selectedIds.length} selected user${selectedIds.length !== 1 ? 's' : ''} will be able to view this report after sharing.`
+                : 'All users in the system will be able to view this report after sharing.'}
             </p>
           </div>
 
@@ -338,7 +338,7 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
             ) : mode === 'restricted' && selectedIds.length > 0 ? (
               <>
                 <Send className="w-4 h-4" />
-                Publish &amp; Share with {selectedIds.length} User{selectedIds.length !== 1 ? 's' : ''}
+                Share with {selectedIds.length} User{selectedIds.length !== 1 ? 's' : ''}
               </>
             ) : (
               <>

@@ -7,6 +7,7 @@ import DashboardPage from '@/pages/DashboardPage'
 import ReportDetailPage from '@/pages/ReportDetailPage'
 import NewReportPage from '@/pages/NewReportPage'
 import HistoryPage from '@/pages/HistoryPage'
+import SharedWithMePage from '@/pages/SharedWithMePage'
 import AdminUsersPage from '@/pages/admin/AdminUsersPage'
 import AdminDepartmentsPage from '@/pages/admin/AdminDepartmentsPage'
 import AdminAuditPage from '@/pages/admin/AdminAuditPage'
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="reports/new" element={<NewReportPage />} />
         <Route path="reports/:id" element={<ReportDetailPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="shared" element={<SharedWithMePage />} />
         <Route path="admin/users" element={<RequireAdmin><AdminUsersPage /></RequireAdmin>} />
         <Route path="admin/departments" element={<RequireAdmin><AdminDepartmentsPage /></RequireAdmin>} />
         <Route path="admin/audit" element={<RequireAdmin><AdminAuditPage /></RequireAdmin>} />
