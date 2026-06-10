@@ -1,0 +1,39 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+*.pyc
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+
+# ── Database & uploaded files ─────────────────────────────────────────────────
+backend/*.db
+backend/uploads/
+
+# ── Secrets / environment ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+backend/.env
+
+# ── Node / Frontend ───────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+node_modules/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+backend.log
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
