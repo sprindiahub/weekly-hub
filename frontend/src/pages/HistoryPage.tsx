@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Search, Download, Eye, FileText, ImageIcon, ChevronRight, X, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { Search, Download, Eye, FileText, ImageIcon, ChevronRight, X, SlidersHorizontal, Trash2, Layers } from 'lucide-react'
 import api from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate, formatDateTime } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import CombinedDownloadModal from '@/components/CombinedDownloadModal'
 import type { WeeklyReport, Department } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -19,7 +20,8 @@ export default function HistoryPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [fromDate, setFromDate]         = useState('')
   const [toDate, setToDate]             = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<WeeklyReport | null>(null)
+  const [deleteTarget,    setDeleteTarget]    = useState<WeeklyReport | null>(null)
+  const [showCombined,    setShowCombined]    = useState(false)
 
   const { data: reports = [], isLoading } = useQuery<WeeklyReport[]>({
     queryKey: ['reports', deptFilter, fromDate, toDate, statusFilter],
@@ -85,12 +87,23 @@ export default function HistoryPage() {
             {hasFilters && ' (filtered)'}
           </p>
         </div>
-        {hasFilters && (
-          <button onClick={clearFilters} className="btn btn-ghost btn-sm"
-                  style={{ color: '#dc2626' }}>
-            <X className="w-3.5 h-3.5" /> Clear All Filters
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {filtered.length > 0 && (
+            <button
+              onClick={() => setShowCombined(true)}
+              className="btn btn-secondary btn-sm"
+              title="Select multiple reports and download as combined PDF"
+            >
+              <Layers className="w-3.5 h-3.5" /> Combined PDF
+            </button>
+          )}
+          {hasFilters && (
+            <button onClick={clearFilters} className="btn btn-ghost btn-sm"
+                    style={{ color: '#dc2626' }}>
+              <X className="w-3.5 h-3.5" /> Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter Panel */}
@@ -281,6 +294,10 @@ export default function HistoryPage() {
         confirmLabel="Delete Report"
         danger
       />
+
+      {showCombined && (
+        <CombinedDownloadModal onClose={() => setShowCombined(false)} />
+      )}
     </div>
   )
 }

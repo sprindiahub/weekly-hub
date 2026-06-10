@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone'
 import {
   ArrowLeft, Plus, Trash2, Edit2, Save, X, Download,
   Image, FileText, Calendar, User, Building2,
-  Upload, CheckCircle, Clock, Send, Link2
+  Upload, CheckCircle, Clock, Send, Link2, Layers, AlertCircle,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatDate, formatDateTime, formatFileSize, getStatusColor } from '@/lib/utils'
@@ -13,6 +13,8 @@ import { PageLoader } from '@/components/ui/LoadingSpinner'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import EmailModal from '@/components/EmailModal'
 import PublishModal from '@/components/PublishModal'
+import CombinedDownloadModal from '@/components/CombinedDownloadModal'
+import { useAuth } from '@/hooks/useAuth'
 import toast from 'react-hot-toast'
 import type { WeeklyReport, ReportNote } from '@/types'
 
@@ -279,11 +281,13 @@ export default function ReportDetailPage() {
   const navigate = useNavigate()
   const qc       = useQueryClient()
 
-  const [newNote,       setNewNote]       = useState('')
-  const [deleteNoteId,  setDeleteNoteId]  = useState<number | null>(null)
-  const [showEmail,     setShowEmail]     = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [showPublish,   setShowPublish]   = useState(false)
+  const { user: currentUser } = useAuth()
+  const [newNote,         setNewNote]         = useState('')
+  const [deleteNoteId,    setDeleteNoteId]     = useState<number | null>(null)
+  const [showEmail,       setShowEmail]        = useState(false)
+  const [confirmDelete,   setConfirmDelete]    = useState(false)
+  const [showPublish,     setShowPublish]      = useState(false)
+  const [showCombinedPDF, setShowCombinedPDF] = useState(false)
 
   const { data: report, isLoading } = useQuery<WeeklyReport>({
     queryKey: ['report', id],
@@ -407,8 +411,15 @@ export default function ReportDetailPage() {
               <Clock className="w-3.5 h-3.5" /> Set to Local
             </button>
           )}
-          <button onClick={handlePDF} className="btn-secondary btn-sm">
+          <button onClick={handlePDF} className="btn-secondary btn-sm" title="Download this report as PDF">
             <Download className="w-3.5 h-3.5" /> PDF
+          </button>
+          <button
+            onClick={() => setShowCombinedPDF(true)}
+            className="btn-secondary btn-sm"
+            title="Combine with other reports and download as one PDF"
+          >
+            <Layers className="w-3.5 h-3.5" /> Combined
           </button>
           <button onClick={() => setShowEmail(true)} className="btn-primary btn-sm">
             <Send className="w-3.5 h-3.5" /> Email
@@ -430,6 +441,31 @@ export default function ReportDetailPage() {
           <span>This report is saved <strong>locally</strong>. Share it to make it visible to selected users.</span>
         </div>
       )}
+
+      {/* Edit notification — shown to report owner when others have edited */}
+      {editHistory.length > 0 && currentUser && report.user_id === currentUser.id && (() => {
+        const othersEdits = editHistory.filter(e => e.user?.id !== currentUser.id)
+        if (othersEdits.length === 0) return null
+        const latest = othersEdits[0] // already sorted desc
+        return (
+          <div
+            className="flex items-start gap-3 p-3.5 rounded-xl"
+            style={{ background: 'rgba(77,14,56,0.05)', border: '1px solid rgba(77,14,56,0.15)' }}
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#4d0e38' }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold" style={{ color: '#4d0e38' }}>
+                {othersEdits.length === 1
+                  ? `${latest.user?.username} edited this report`
+                  : `${othersEdits.length} edits were made by collaborators`}
+              </p>
+              <p className="text-xs font-medium mt-0.5" style={{ color: '#7a7068' }}>
+                Latest: {latest.detail ?? latest.action?.replace(/_/g, ' ')} — {formatDateTime(latest.edited_at)}
+              </p>
+            </div>
+          </div>
+        )
+      })()}
 
       <div className="grid lg:grid-cols-3 gap-5">
         {/* Notes — 2/3 */}
@@ -571,6 +607,13 @@ export default function ReportDetailPage() {
           report={report}
           onClose={() => setShowPublish(false)}
           onPublished={invalidate}
+        />
+      )}
+
+      {showCombinedPDF && (
+        <CombinedDownloadModal
+          initialIds={[report.id]}
+          onClose={() => setShowCombinedPDF(false)}
         />
       )}
     </div>

@@ -4,10 +4,34 @@ from typing import List
 
 from app.auth import get_current_user, get_admin_user, hash_password
 from app.database import get_session
-from app.models import User, UserCreate, UserRead, UserUpdate, Department
+from app.models import User, UserCreate, UserRead, UserUpdate, Department, UserRole
 from app.utils.audit import log_action
 
 router = APIRouter(prefix="/api/users", tags=["users"])
+
+
+@router.get("/me/dept-head", response_model=UserRead)
+def get_my_dept_head(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns the department head of the current user's department, or 404 if none exists.
+    Used by ShareModal to offer a quick 'Share to my department head' shortcut."""
+    if not current_user.department_id:
+        raise HTTPException(404, "You have no department assigned")
+    head = session.exec(
+        select(User).where(
+            User.department_id == current_user.department_id,
+            User.role == UserRole.department_head,
+            User.is_active == True,  # noqa: E712
+            User.id != current_user.id,
+        )
+    ).first()
+    if not head:
+        raise HTTPException(404, "No department head found for your department")
+    if head.department_id:
+        head.department = session.get(Department, head.department_id)
+    return head
 
 
 @router.get("/shareable", response_model=List[UserRead])

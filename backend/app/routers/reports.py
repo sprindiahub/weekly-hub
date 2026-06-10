@@ -493,9 +493,88 @@ def download_pdf(
     )
 
 
-# ── Report Sharing / Publish Access ────────────────────────────────────────────
+# ── Combined PDF export ────────────────────────────────────────────────────────
 
 from pydantic import BaseModel as _BaseModel
+
+
+class CombinedPDFRequest(_BaseModel):
+    report_ids: List[int]
+
+
+@router.post("/combined-pdf")
+def download_combined_pdf(
+    body: CombinedPDFRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Generate a single PDF combining multiple reports.
+    Only reports the current user has access to will be included."""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    if not body.report_ids:
+        raise HTTPException(400, "At least one report ID is required")
+    if len(body.report_ids) > 20:
+        raise HTTPException(400, "Maximum 20 reports can be combined at once")
+
+    reports_data = []
+    allowed_ids = []
+    for rid in body.report_ids:
+        report = session.get(WeeklyReport, rid)
+        if not report:
+            continue
+        try:
+            _check_report_access(report, current_user, session)
+        except HTTPException:
+            continue  # silently skip reports the user can't access
+
+        enriched = _enrich_report(report, session)
+        dept = session.get(Department, report.department_id)
+        user = session.get(User, report.user_id)
+        from app.models import ReportImage as _RI
+        images = session.exec(
+            select(_RI).where(_RI.report_id == rid)
+        ).all()
+
+        reports_data.append({
+            "department_name": dept.name if dept else "Unknown",
+            "department_code": dept.short_code if dept else "N/A",
+            "weekend_date": str(report.weekend_date),
+            "user_name": user.username if user else "Unknown",
+            "notes": [{"id": n.id, "content": n.content, "created_at": n.created_at,
+                       "order_index": n.order_index} for n in enriched.notes],
+            "images": [{"file_path": img.file_path, "caption": img.caption,
+                        "original_name": img.original_name, "order_index": img.order_index,
+                        "note_id": img.note_id}
+                       for img in images],
+        })
+        allowed_ids.append(rid)
+
+    if not reports_data:
+        raise HTTPException(404, "No accessible reports found for the given IDs")
+
+    try:
+        pdf_bytes = generate_pdf(reports_data)
+    except Exception as exc:
+        logger.exception("Combined PDF generation failed")
+        raise HTTPException(500, f"PDF generation failed: {exc}") from exc
+
+    filename = f"SPR_Combined_Report_{len(reports_data)}_depts.pdf"
+    try:
+        for rid in allowed_ids:
+            log_action(session, current_user.id, "EXPORT_PDF", "report", rid, "combined")
+    except Exception:
+        pass
+
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ── Report Sharing / Publish Access ────────────────────────────────────────────
 
 class ShareRequest(_BaseModel):
     user_ids: List[int]

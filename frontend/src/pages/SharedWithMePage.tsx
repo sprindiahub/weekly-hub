@@ -1,16 +1,20 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   Users, FileText, ImageIcon, ChevronRight, Calendar,
-  Building2, User, Eye,
+  Building2, User, Eye, Layers,
 } from 'lucide-react'
 import api from '@/lib/api'
 import { formatDate, formatDateTime } from '@/lib/utils'
 import { PageLoader } from '@/components/ui/LoadingSpinner'
 import EmptyState from '@/components/ui/EmptyState'
+import CombinedDownloadModal from '@/components/CombinedDownloadModal'
 import type { WeeklyReport } from '@/types'
 
 export default function SharedWithMePage() {
+  const [showCombined, setShowCombined] = useState(false)
+
   const { data: reports = [], isLoading } = useQuery<WeeklyReport[]>({
     queryKey: ['shared-with-me'],
     queryFn: () => api.get('/reports/shared-with-me').then(r => r.data),
@@ -28,12 +32,21 @@ export default function SharedWithMePage() {
           </p>
         </div>
         {reports.length > 0 && (
-          <div
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
-            style={{ background: 'rgba(77,14,56,0.07)', color: '#4d0e38', border: '1px solid rgba(77,14,56,0.12)' }}
-          >
-            <Users className="w-4 h-4" />
-            {reports.length} report{reports.length !== 1 ? 's' : ''} shared
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowCombined(true)}
+              className="btn btn-secondary btn-sm"
+              title="Download shared reports as a combined PDF"
+            >
+              <Layers className="w-3.5 h-3.5" /> Combined PDF
+            </button>
+            <div
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+              style={{ background: 'rgba(77,14,56,0.07)', color: '#4d0e38', border: '1px solid rgba(77,14,56,0.12)' }}
+            >
+              <Users className="w-4 h-4" />
+              {reports.length} shared
+            </div>
           </div>
         )}
       </div>
@@ -181,6 +194,13 @@ export default function SharedWithMePage() {
             )
           })}
         </div>
+      )}
+
+      {showCombined && (
+        <CombinedDownloadModal
+          initialIds={reports.map(r => r.id)}
+          onClose={() => setShowCombined(false)}
+        />
       )}
     </div>
   )

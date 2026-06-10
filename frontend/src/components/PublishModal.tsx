@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Send, X, CheckSquare, Square,
-  Lock, Globe, Search, Shield, UserCheck, Users,
+  Lock, Globe, Search, Shield, UserCheck, Users, Zap,
 } from 'lucide-react'
 import api from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -26,6 +26,13 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
   const { data: allUsers = [] } = useQuery<User[]>({
     queryKey: ['users-shareable'],
     queryFn: () => api.get('/users/shareable').then(r => r.data),
+  })
+
+  // Dept head of the current user's department (may not exist)
+  const { data: deptHead } = useQuery<User>({
+    queryKey: ['dept-head'],
+    queryFn: () => api.get('/users/me/dept-head').then(r => r.data),
+    retry: false,
   })
 
   // Exclude report owner — they always have access
@@ -164,6 +171,50 @@ export default function PublishModal({ report, onClose, onPublished }: Props) {
           {/* User list — only shown in restricted mode */}
           {mode === 'restricted' && (
             <div className="space-y-3">
+
+              {/* Quick: share to dept head */}
+              {deptHead && !selectedIds.includes(deptHead.id) && deptHead.id !== report.user_id && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds(prev => [...prev.filter(id => id !== deptHead.id), deptHead.id])}
+                  className="w-full flex items-center gap-3 p-3.5 rounded-xl text-left transition-all duration-200"
+                  style={{
+                    background: 'rgba(201,168,76,0.07)',
+                    border: '1.5px dashed rgba(201,168,76,0.45)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(201,168,76,0.13)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(201,168,76,0.07)' }}
+                >
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                       style={{ background: 'rgba(201,168,76,0.20)', color: '#92400e' }}>
+                    <Zap className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-black uppercase tracking-wider" style={{ color: '#92400e' }}>
+                      Quick: Share to my Department Head
+                    </div>
+                    <div className="text-xs font-semibold mt-0.5 truncate" style={{ color: '#5c544e' }}>
+                      {deptHead.username}
+                      {deptHead.department && <span style={{ color: '#a89f98' }}> · {deptHead.department.name}</span>}
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0"
+                        style={{ background: 'rgba(201,168,76,0.20)', color: '#92400e' }}>
+                    Add
+                  </span>
+                </button>
+              )}
+              {deptHead && selectedIds.includes(deptHead.id) && deptHead.id !== report.user_id && (
+                <div
+                  className="flex items-center gap-3 p-3 rounded-xl"
+                  style={{ background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.20)' }}
+                >
+                  <CheckSquare className="w-4 h-4 flex-shrink-0" style={{ color: '#16a34a' }} />
+                  <span className="text-xs font-bold" style={{ color: '#15803d' }}>
+                    Department head <strong>{deptHead.username}</strong> is included
+                  </span>
+                </div>
+              )}
 
               {/* Header row */}
               <div className="flex items-center justify-between">
