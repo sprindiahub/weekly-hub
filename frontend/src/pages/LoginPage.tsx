@@ -72,8 +72,6 @@ export default function LoginPage() {
             </div>
             <div>
               <div className="font-display text-xl text-white leading-tight">SPR India</div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.14em]"
-                   style={{ color: 'rgba(201,168,76,0.7)' }}>Pvt. Ltd.</div>
             </div>
           </div>
 
@@ -102,7 +100,7 @@ export default function LoginPage() {
         <div className="relative">
           <div className="h-px w-full mb-5" style={{ background: 'rgba(255,255,255,0.08)' }} />
           <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            © {new Date().getFullYear()} SPR India Private Limited. All rights reserved.
+            © {new Date().getFullYear()} SPR India. All rights reserved.
           </p>
         </div>
       </div>
